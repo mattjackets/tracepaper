@@ -36,6 +36,15 @@
 #
 require 'libglade2'
 
+class String
+  def isImage
+    if (self =~ /.*\.[jJ][pP][gG]$/)
+      return true
+    else
+      return false
+    end
+  end
+end
 class TracepaperGlade
   include GetText
 
@@ -45,48 +54,83 @@ class TracepaperGlade
     bindtextdomain(domain, localedir, nil, "UTF-8")
     @glade = GladeXML.new(path_or_data, root, domain, localedir, flag) {|handler| method(handler)}
     
-    @image = @glade.get_widget("image")
+    @image= @glade.get_widget("image")
     @info = @glade.get_widget("info")
-    @odir = Dir.new(ARGV[1])
-    @sdir = Dir.new(ARGV[0])
-    @lastopos = []
-    @lastspos = []
+    @opath= ARGV[1]
+    @spath= ARGV[0]
+    @odir = Dir.entries(@opath)
+    @sdir = Dir.entries(@spath)
+    @opos = -1
+    @spos = -1
+    @oimage
+    @simage
+
+    on_snext_clicked 1
+    on_onext_clicked 1
   end
   
   def on_oprev_clicked(widget)
-    puts @lastopos
-    pos = @lastopos.last
-    puts "headed to "+pos.to_s
-    @odir.seek pos
-    filename=@odir.read
-    filename=@odir.path+"/"+filename
-    oimage=Gdk::Pixbuf.new(filename)
-    @image.set(filename)
+    filename=""
+    while (not filename.isImage)
+      @opos=@opos-1
+      if @opos == -1
+        @opos=@odir.size-1
+      end
+      filename=@odir[@opos]
+    end
+    filename=@opath+"/"+filename
+    @oimage=Gdk::Pixbuf.new(filename)
     puts @info.text = filename+" loaded as overlay."
-    puts @info.text = "on_oprev_clicked() is not implemented yet."
+    filename=@spath+"/"+@sdir[@spos]
+    @simage=Gdk::Pixbuf.new(filename)
+    compose 128
   end
   def on_onext_clicked(widget)
     filename=""
-    while (filename =~ /.*\.jpg$/).nil?
-      pos = @odir.tell
-      filename=@odir.read
+    while (not filename.isImage)
+      @opos=@opos+1
+      if @opos == @odir.size
+        @opos=0
+      end
+      filename=@odir[@opos]
     end
-    @lastopos.push pos
-    filename=@odir.path+"/"+filename
-    oimage=Gdk::Pixbuf.new(filename)
-    @image.set(filename)
-    puts @info.text = filename+" at position "+pos.to_s+" loaded as overlay."
+    filename=@opath+"/"+filename
+    @oimage=Gdk::Pixbuf.new(filename)
+    puts @info.text = filename+" loaded as overlay."
+    filename=@spath+"/"+@sdir[@spos]
+    @simage=Gdk::Pixbuf.new(filename)
+    compose 128
   end
   def on_snext_clicked(widget)
-    puts "on_snext_clicked() is not implemented yet."
-    @testimage = Gdk::Pixbuf.new("img110.jpg")
-    @image.set(compose(@testimage,@overlayimage,128))
+    filename=""
+    while (not filename.isImage)
+      @spos=@spos+1
+      if @spos == @sdir.size
+        @spos=0
+      end
+      filename=@sdir[@spos]
+    end
+    filename=@spath+"/"+filename
+    @simage=Gdk::Pixbuf.new(filename)
+    puts @info.text = filename+" loaded as source."
+    compose 128
   end
   def on_sfile_clicked(widget)
     puts @info.text = "on_oprev_clicked() is not implemented yet."
   end
   def on_sprev_clicked(widget)
-    puts @info.text = "on_oprev_clicked() is not implemented yet."
+  filename=""
+    while (not filename.isImage)
+      @spos=@spos-1
+      if @spos == -1
+        @spos=@sdir.size-1
+      end
+      filename=@sdir[@spos]
+    end
+    filename=@spath+"/"+filename
+    @simage=Gdk::Pixbuf.new(filename)
+    puts @info.text = filename+" loaded as source."
+    compose 128
   end
   def on_ofile_clicked(widget)
     puts @info.text = "on_oprev_clicked() is not implemented yet."
@@ -95,11 +139,18 @@ class TracepaperGlade
     Gtk.main_quit
   end
   
-  def compose(base,overlay,alpha)
-    return base.composite!(overlay, 0,0, 
-                      base.width,base.height,
+  def compose(alpha)
+    if @simage.nil? || @oimage.nil?
+      return
+    end
+    #simage=@simage.clone
+    #simage=Gdk::Pixbuf.new(@simage)
+    simage=@simage
+    result = simage.composite!(@oimage, 0,0, 
+                      simage.width,simage.height,
                       0,0,1,1,Gdk::Pixbuf::INTERP_NEAREST,
                       128)
+    @image.set(result)
   end
     
 end
