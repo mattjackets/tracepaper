@@ -45,29 +45,63 @@ class TracepaperGlade
     bindtextdomain(domain, localedir, nil, "UTF-8")
     @glade = GladeXML.new(path_or_data, root, domain, localedir, flag) {|handler| method(handler)}
     
+    @image = @glade.get_widget("image")
+    @info = @glade.get_widget("info")
+    @odir = Dir.new(ARGV[1])
+    @sdir = Dir.new(ARGV[0])
+    @lastopos = []
+    @lastspos = []
   end
   
   def on_oprev_clicked(widget)
-    puts "on_oprev_clicked() is not implemented yet."
+    puts @lastopos
+    pos = @lastopos.last
+    puts "headed to "+pos.to_s
+    @odir.seek pos
+    filename=@odir.read
+    filename=@odir.path+"/"+filename
+    oimage=Gdk::Pixbuf.new(filename)
+    @image.set(filename)
+    puts @info.text = filename+" loaded as overlay."
+    puts @info.text = "on_oprev_clicked() is not implemented yet."
   end
   def on_onext_clicked(widget)
-    puts "on_onext_clicked() is not implemented yet."
+    filename=""
+    while (filename =~ /.*\.jpg$/).nil?
+      pos = @odir.tell
+      filename=@odir.read
+    end
+    @lastopos.push pos
+    filename=@odir.path+"/"+filename
+    oimage=Gdk::Pixbuf.new(filename)
+    @image.set(filename)
+    puts @info.text = filename+" at position "+pos.to_s+" loaded as overlay."
   end
   def on_snext_clicked(widget)
     puts "on_snext_clicked() is not implemented yet."
+    @testimage = Gdk::Pixbuf.new("img110.jpg")
+    @image.set(compose(@testimage,@overlayimage,128))
   end
   def on_sfile_clicked(widget)
-    puts "on_sfile_clicked() is not implemented yet."
+    puts @info.text = "on_oprev_clicked() is not implemented yet."
   end
   def on_sprev_clicked(widget)
-    puts "on_sprev_clicked() is not implemented yet."
+    puts @info.text = "on_oprev_clicked() is not implemented yet."
   end
   def on_ofile_clicked(widget)
-    puts "on_ofile_clicked() is not implemented yet."
+    puts @info.text = "on_oprev_clicked() is not implemented yet."
   end
   def on_window1_delete_event(widget, arg0)
-    puts "on_window1_delete_event() is not implemented yet."
+    Gtk.main_quit
   end
+  
+  def compose(base,overlay,alpha)
+    return base.composite!(overlay, 0,0, 
+                      base.width,base.height,
+                      0,0,1,1,Gdk::Pixbuf::INTERP_NEAREST,
+                      128)
+  end
+    
 end
 
 # Main program
@@ -75,6 +109,20 @@ if __FILE__ == $0
   # Set values as your own application. 
   PROG_PATH = "tracepaper.glade"
   PROG_NAME = "YOUR_APPLICATION_NAME"
+  usage = "Usage: "+$0+" <source image directory> <overlay image directory>"
+  sd = ARGV[0]
+  od = ARGV[1]
+  if sd.nil? || od.nil?
+    puts "Two arguments required"
+    puts usage
+    exit 1
+  end
+  unless File.directory?(sd) && File.directory?(od)
+    puts "Both arguments must be directories"
+    puts usage
+    exit 1
+  end
+
   TracepaperGlade.new(PROG_PATH, nil, PROG_NAME)
   Gtk.main
 end
