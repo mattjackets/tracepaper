@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 ###############################################################################
-#   Copyright (c) 2006, Matthew F. Coates
+#   Copyright (c) 2008, Matthew F. Coates
 #   All rights reserved.
 # 
 #   Redistribution and use in source and binary forms, with or without
