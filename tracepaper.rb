@@ -58,8 +58,8 @@ class TracepaperGlade
     @info = @glade.get_widget("info")
     @opath= ARGV[1]
     @spath= ARGV[0]
-    @odir = Dir.entries(@opath)
-    @sdir = Dir.entries(@spath)
+    @odir = Dir.entries(@opath).sort
+    @sdir = Dir.entries(@spath).sort
     @opos = -1
     @spos = -1
     @oimage
@@ -79,10 +79,12 @@ class TracepaperGlade
       filename=@odir[@opos]
     end
     filename=@opath+"/"+filename
+    @oimage=nil
     @oimage=Gdk::Pixbuf.new(filename)
+    GC.start
     puts @info.text = filename+" loaded as overlay."
-    filename=@spath+"/"+@sdir[@spos]
-    @simage=Gdk::Pixbuf.new(filename)
+    #filename=@spath+"/"+@sdir[@spos]
+    #@simage=Gdk::Pixbuf.new(filename)
     compose 128
   end
   def on_onext_clicked(widget)
@@ -95,11 +97,13 @@ class TracepaperGlade
       filename=@odir[@opos]
     end
     filename=@opath+"/"+filename
+    @oimage=nil
     @oimage=Gdk::Pixbuf.new(filename)
     puts @info.text = filename+" loaded as overlay."
-    filename=@spath+"/"+@sdir[@spos]
-    @simage=Gdk::Pixbuf.new(filename)
+    #filename=@spath+"/"+@sdir[@spos]
+    #@simage=Gdk::Pixbuf.new(filename)
     compose 128
+    GC.start
   end
   def on_snext_clicked(widget)
     filename=""
@@ -111,6 +115,7 @@ class TracepaperGlade
       filename=@sdir[@spos]
     end
     filename=@spath+"/"+filename
+    @simage=nil
     @simage=Gdk::Pixbuf.new(filename)
     puts @info.text = filename+" loaded as source."
     compose 128
@@ -128,6 +133,7 @@ class TracepaperGlade
       filename=@sdir[@spos]
     end
     filename=@spath+"/"+filename
+    @simage=nil
     @simage=Gdk::Pixbuf.new(filename)
     puts @info.text = filename+" loaded as source."
     compose 128
@@ -145,7 +151,7 @@ class TracepaperGlade
     end
     #simage=@simage.clone
     #simage=Gdk::Pixbuf.new(@simage)
-    simage=@simage
+    simage=@simage.dup
     result = simage.composite!(@oimage, 0,0, 
                       simage.width,simage.height,
                       0,0,1,1,Gdk::Pixbuf::INTERP_NEAREST,
