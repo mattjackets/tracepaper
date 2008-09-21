@@ -60,83 +60,127 @@ class TracepaperGlade
     @spath= ARGV[0]
     @odir = Dir.entries(@opath).sort
     @sdir = Dir.entries(@spath).sort
-    @opos = -1
-    @spos = -1
-    @oimage
-    @simage
+    @oimage = ""
+    @simage = ""
+    @opos = next_image @odir,-1,@opath,@oimage
+    @spos = next_image @sdir,-1,@spath,@simage
+    compose
+    GC.start
+  end
 
-    on_snext_clicked 1
-    on_onext_clicked 1
+  def next_image(dir,pos,path,image)
+     filename=""
+     while (not filename.isImage)
+       pos+=1
+       if pos == dir.size
+         pos=0
+       end
+       filename=dir[pos]
+       unless FileTest.exists?(path+"/"+filename)
+         @odir = Dir.entries(@opath).sort
+         @sdir = Dir.entries(@spath).sort
+         filename=""
+       end
+    end
+    image.replace path+"/"+filename
+    return pos
   end
-  
+
+  def prev_image(dir,pos,path,image)
+     filename=""
+     while (not filename.isImage)
+       pos-=1
+       if pos == -1
+         pos=dir.size-1
+       end
+       filename=dir[pos]
+       unless FileTest.exists?(path+"/"+filename)
+         @odir = Dir.entries(@opath).sort
+         @sdir = Dir.entries(@spath).sort
+         if @opath == path
+           next_image @sdir,@spos,@spath,@simage
+         else
+           next_image @odir,@opos,@opath,@oimage
+         end
+         filename=""
+       end
+    end
+    image.replace path+"/"+filename
+    return pos
+  end
+
+  def on_ofr_clicked(widget)
+    if @opos < 50
+      @opos=0
+    else
+      @opos -= 50
+    end
+    @opos = next_image @odir,@opos,@opath,@oimage
+    puts @info.text = @oimage+" loaded as overlay."
+    compose 128
+    GC.start
+  end
+
   def on_oprev_clicked(widget)
-    filename=""
-    while (not filename.isImage)
-      @opos=@opos-1
-      if @opos == -1
-        @opos=@odir.size-1
-      end
-      filename=@odir[@opos]
-    end
-    filename=@opath+"/"+filename
-    @oimage=nil
-    @oimage=Gdk::Pixbuf.new(filename)
-    GC.start
-    puts @info.text = filename+" loaded as overlay."
-    #filename=@spath+"/"+@sdir[@spos]
-    #@simage=Gdk::Pixbuf.new(filename)
+    @opos = prev_image @odir,@opos,@opath,@oimage
+    puts @info.text = @oimage+" loaded as overlay."
     compose 128
+    GC.start
   end
+
   def on_onext_clicked(widget)
-    filename=""
-    while (not filename.isImage)
-      @opos=@opos+1
-      if @opos == @odir.size
-        @opos=0
-      end
-      filename=@odir[@opos]
-    end
-    filename=@opath+"/"+filename
-    @oimage=nil
-    @oimage=Gdk::Pixbuf.new(filename)
-    puts @info.text = filename+" loaded as overlay."
-    #filename=@spath+"/"+@sdir[@spos]
-    #@simage=Gdk::Pixbuf.new(filename)
+    @opos = next_image @odir,@opos,@opath,@oimage
+    puts @info.text = @oimage+" loaded as overlay."
     compose 128
     GC.start
   end
-  def on_snext_clicked(widget)
-    filename=""
-    while (not filename.isImage)
-      @spos=@spos+1
-      if @spos == @sdir.size
-        @spos=0
-      end
-      filename=@sdir[@spos]
-    end
-    filename=@spath+"/"+filename
-    @simage=nil
-    @simage=Gdk::Pixbuf.new(filename)
-    puts @info.text = filename+" loaded as source."
+
+  def on_off_clicked(widget)
+    @opos += 50
+    @opos = @odir.size if @opos > @odir.size
+    @opos = prev_image @odir,@opos,@opath,@oimage
+    puts @info.text = @oimage+" loaded as overlay."
     compose 128
+    GC.start
   end
+
+  def on_sfr_clicked(widget)
+    if @spos < 50
+      @spos=0
+    else
+      @spos -= 50
+    end
+    @spos = next_image @sdir,@spos,@spath,@simage
+    puts @info.text = @simage+" loaded as source."
+    compose
+    GC.start
+  end
+
+  def on_sprev_clicked(widget)
+    @spos = prev_image @sdir,@spos,@spath,@simage
+    puts @info.text = @simage+" loaded as source."
+    compose 128
+    GC.start
+  end
+
+  def on_snext_clicked(widget)
+    @spos = next_image @sdir,@spos,@spath,@simage
+    puts @info.text = @simage+" loaded as source."
+    compose 128
+    GC.start
+  end
+
+  def on_sff_clicked(widget)
+    @spos += 50
+    @spos = @sdir.size if @spos > @sdir.size
+    @spos = prev_image @sdir,@spos,@spath,@simage
+    puts @info.text = @simage+" loaded as overlay."
+    compose
+    GC.start
+  end
+
   def on_sfile_clicked(widget)
     puts @info.text = "on_oprev_clicked() is not implemented yet."
-  end
-  def on_sprev_clicked(widget)
-  filename=""
-    while (not filename.isImage)
-      @spos=@spos-1
-      if @spos == -1
-        @spos=@sdir.size-1
-      end
-      filename=@sdir[@spos]
-    end
-    filename=@spath+"/"+filename
-    @simage=nil
-    @simage=Gdk::Pixbuf.new(filename)
-    puts @info.text = filename+" loaded as source."
-    compose 128
   end
   def on_ofile_clicked(widget)
     puts @info.text = "on_oprev_clicked() is not implemented yet."
@@ -145,17 +189,13 @@ class TracepaperGlade
     Gtk.main_quit
   end
   
-  def compose(alpha)
-    if @simage.nil? || @oimage.nil?
-      return
-    end
-    #simage=@simage.clone
-    #simage=Gdk::Pixbuf.new(@simage)
-    simage=@simage.dup
-    result = simage.composite!(@oimage, 0,0, 
-                      simage.width,simage.height,
+  def compose(alpha=128)
+    i1=Gdk::Pixbuf.new(@simage)
+    i2=Gdk::Pixbuf.new(@oimage)
+    result = i1.composite!(i2, 0,0, 
+                      i2.width,i2.height,
                       0,0,1,1,Gdk::Pixbuf::INTERP_NEAREST,
-                      128)
+                      alpha)
     @image.set(result)
   end
     
@@ -169,6 +209,7 @@ if __FILE__ == $0
   usage = "Usage: "+$0+" <source image directory> <overlay image directory>"
   sd = ARGV[0]
   od = ARGV[1]
+  puts "Width: "+Gdk::Screen.default.width.to_s+" Height: "+Gdk::Screen.default.height.to_s
   if sd.nil? || od.nil?
     puts "Two arguments required"
     puts usage
